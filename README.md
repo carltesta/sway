@@ -1,4 +1,4 @@
-# Norns_Sway
+# Norns-Sway
 Sway for monome norns (live processing environment for one channel)
 
 http://sway.carltesta.net
