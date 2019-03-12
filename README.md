@@ -9,7 +9,7 @@ Demo/walkthrough video here: https://youtu.be/w9RZHmo4JAs
 
 To install on norns running 2.0 or above
 
-ssh into norns via command line or terminal
+ssh into norns via command line or terminal (see https://monome.org/docs/norns/ under "other access")
 
 then type:
 ```
