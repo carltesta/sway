@@ -16,7 +16,7 @@ then type:
 cd dust/scripts
 git clone https://github.com/carltesta/norns-sway
 ```
-To update ssh and type:
+To update, first  ssh in and type:
 ```
 cd dust/scripts/norns-sway
 git pull
@@ -32,3 +32,4 @@ TODO CALIBRATION
 TODO SETTINGS
 
 TODO ADDING PROCESSING TYPES
+
