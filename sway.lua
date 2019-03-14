@@ -26,7 +26,7 @@ local y_coord = 0.5
 local processingtext =""
 local screen_number = 0
 local quadrants = {1,2,8,3,4}
-local q0,q1,q2,q3,q4
+local q0,q1,q2,q3,q4  
 
 engine.name = 'Sway'
 
@@ -188,6 +188,8 @@ function init()
       if val==7 then engine.map_quadrant(4,7) end
       if val==8 then engine.map_quadrant(4,6) end
       end}
+  params:read("sway.pset")
+  params:bang()
   t:start()
 
 end
