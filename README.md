@@ -13,12 +13,14 @@ ssh into norns via command line or terminal (see https://monome.org/docs/norns/ 
 
 then type:
 ```
-cd dust/scripts
+cd dust/code
 git clone https://github.com/carltesta/norns-sway
 ```
-To update, first  ssh in and type:
+After installation reset the audio system by navigating to ```System > RESET```
+
+To update, first ssh in and type:
 ```
-cd dust/scripts/norns-sway
+cd dust/code/norns-sway
 git pull
 ```
 
