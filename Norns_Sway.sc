@@ -316,9 +316,9 @@ Norns_Sway : Singleton {
 			var feedback = delayfeedback.kr(1);
 			var local = LocalIn.ar(1) + input.ar(1);
 			var select = ToggleFF.kr(\toggle.tr(1.neg));
-			var delay1 = BufDelayL.ar(delaybuffer, local, Latch.kr(time, 1- select));
-			var delay2 = BufDelayL.ar(delaybuffer, local, Latch.kr(time, select));
-			var fade = MulAdd.new(Lag2.kr(select, 4), 2, 1.neg);
+			var delay1 = BufDelayN.ar(delaybuffer, local, Latch.kr(time, 1- select));
+			var delay2 = BufDelayN.ar(delaybuffer, local, Latch.kr(time, select));
+			var fade = MulAdd.new(Lag.kr(select, 0.2), 2, 1.neg);
 			var delay = XFade2.ar(delay1, delay2, fade);
 			LocalOut.ar(delay * feedback);
 			delay;
