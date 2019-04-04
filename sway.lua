@@ -188,7 +188,7 @@ function init()
       if val==7 then engine.map_quadrant(4,7) end
       if val==8 then engine.map_quadrant(4,6) end
       end}
-  params:read("/home/we/dust/data/norns-sway/sway/sway.pset")
+  params:read("/home/we/dust/data/sway/sway.pset")
   params:bang()
   t:start()
 
