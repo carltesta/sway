@@ -117,6 +117,10 @@ Engine_Sway : CroneEngine {
 		this.addCommand("cascade", "i", {|msg|
 			Norns_Sway(\sway).cascade;
 		});
+		
+		this.addCommand("textural", "i", {|msg|
+			Norns_Sway(\sway).textural;
+		});
 
 		this.addPoll("x_coord", {Norns_Sway(\sway).xy[0]});
 		this.addPoll("y_coord", {Norns_Sway(\sway).xy[1]});

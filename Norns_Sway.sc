@@ -3,12 +3,36 @@ Norns_Sway : Singleton {
 	//Special Thanks to Brian Heim, Joshua Parmenter, Chris McDonald, Scott Carver
 	classvar <>short_win=1, <>long_win=30, <>refresh_rate=1.0, <>gravity=0.01, <>step=0.05;
 
-	var <>xy, <>quadrant, <>quadrant_names, <>quadrant_map, <>input, <>output, <>analysis_input, <>buffer, <>fftbuffer, <>delaybuffer, <>recorder, <>processing, <>fade=30, <>onsets, <>amplitude, <>clarity, <>flatness, <>amfreq, <>rvmix, <>rvsize, <>rvdamp, <>delaytime, <>delayfeedback, <>delaylatch, <>pbtime, <>pbbend, <>graintrig, <>grainfreq, <>grainpos, <>grainsize, <>granpos, <>granenvspeed, <>granrate, <>filtfreq, <>filtrq, <>freezefreq, <>freezefade, <>panpos, <>pansign, <>analysis_loop, <>above_amp_thresh=false, <>above_clarity_thresh=false, <>above_density_thresh=false, <>amp_thresh=4, <>clarity_thresh=0.6, <>density_thresh=1.5, <>tracker, <>count=0, <>analysis_on=true, <>tracker_on=true, <>audio_processing=true, <>verbose=false, <>polarity=false, <>quadrant_flag=false, <>timelimit=200, <>available_processing, <>all_processing, <>global_change=false;
+	var <>xy, <>quadrant, <>quadrant_names, <>quadrant_map, <>input, <>output, <>analysis_input, <>buffer, <>fftbuffer, <>delaybuffer, <>recorder, <>processing, <>fade=30, <>onsets, <>amplitude, <>clarity, <>flatness, <>amfreq, <>rvmix, <>rvsize, <>rvdamp, <>delaytime, <>delayfeedback, <>delaylatch, <>pbtime, <>pbbend, <>graintrig, <>grainfreq, <>grainpos, <>grainsize, <>granpos, <>granenvspeed, <>granrate, <>filtfreq, <>filtrq, <>freezefreq, <>freezefade, <>freezedurmin, <>freezedurmax, <>freezeleg, <>texturalmin, <>texturalmax, <>texturalsusmin, <>texturalsusmax, <>texturalposrate, <>texturalpostype, <>texturalrate, <>panpos, <>pansign, <>analysis_loop, <>above_amp_thresh=false, <>above_clarity_thresh=false, <>above_density_thresh=false, <>amp_thresh=4, <>clarity_thresh=0.6, <>density_thresh=1.5, <>tracker, <>count=0, <>analysis_on=true, <>tracker_on=true, <>audio_processing=true, <>verbose=false, <>polarity=false, <>quadrant_flag=false, <>timelimit=200, <>available_processing, <>all_processing, <>global_change=false;
 
     init {
 		//Setup initial parameters
 		this.reset;
 
+    Routine.new({
+			SynthDef(\textureStretch, {|bufnum, rate=1, posrate=0.1, postype=0, gSize=0.1 amp=0.5, out, gate=1|
+			var sound, lfo, env;
+			env = EnvGen.kr(Env.adsr(0.1,0.5,0.9,1,0.9,-1), gate, doneAction: 2);
+			lfo = Select.kr(postype, LFTri.kr(posrate).unipolar, LFNoise0.kr(posrate).unipolar);
+			sound = Warp1.ar(1, bufnum, lfo, rate, gSize, -1, 8, 0.1, 2) * env;
+			Out.ar(out, sound*amp);
+			}).add;
+
+			﻿SynthDef(\freeze, {
+			|in = 0, out, buf1, buf2, amp=1, ratio=1, pitchd=0, pitcht=0, sourceVol=1, gate=1|
+			var input, freeze1, env, fade, fadeTime=0.1, chain1, trig, pitch;
+			trig = Trig.kr(\trigger.tr(1)).linlin(0,1,1,0);
+			input = In.ar(in)*sourceVol.lag(0.1);
+			chain1 = FFT(buf1, input);
+			freeze1 = PV_Freeze(chain1, trig);
+			freeze1 = IFFT(freeze1)*amp;
+			env = EnvGen.kr(Env.adsr(0.1,0.5,0.9,1,0.9,-1), gate, doneAction: 2);
+			Out.ar(out, freeze1*env);
+			}).add;
+
+			Server.default.sync;
+		}).play;
+    
 		//audio input with chan argument
 		input = NodeProxy.audio(Server.default, 1).fadeTime_(fade)
 		.source = { |chan=0| In.ar(chan) };
@@ -17,7 +41,7 @@ Norns_Sway : Singleton {
 		fftbuffer = Buffer.alloc(Server.default, 1024);
 
 		//delaybuffer
-		delaybuffer = Buffer.alloc(Server.default, 10*48000, 1);
+		delaybuffer = Buffer.alloc(Server.default, 20*48000, 1);
 
 		//audio recorder
 		buffer = Buffer.alloc(Server.default, long_win*48000, 1);
@@ -183,8 +207,19 @@ Norns_Sway : Singleton {
 		filtfreq = NodeProxy.control(Server.default, 1).fadeTime_(fade);
 		filtrq = NodeProxy.control(Server.default, 1).fadeTime_(fade);
 		//freeze
-		freezefreq = NodeProxy.control(Server.default, 1).fadeTime_(fade);
-		freezefade = NodeProxy.control(Server.default, 1).fadeTime_(fade);
+		//freezefreq = NodeProxy.control(Server.default, 1).fadeTime_(fade);
+		//freezefade = NodeProxy.control(Server.default, 1).fadeTime_(fade);
+		freezedurmin = NodeProxy.control(Server.default, 1).fadeTime_(fade);
+		freezedurmax = NodeProxy.control(Server.default, 1).fadeTime_(fade);
+		freezeleg = NodeProxy.control(Server.default, 1).fadeTime_(fade);
+		//textural
+		texturalmin = NodeProxy.control(Server.default, 1).fadeTime_(fade);
+		texturalmax = NodeProxy.control(Server.default, 1).fadeTime_(fade);
+		texturalsusmin = NodeProxy.control(Server.default, 1).fadeTime_(fade);
+		texturalsusmax = NodeProxy.control(Server.default, 1).fadeTime_(fade);
+		texturalposrate = NodeProxy.control(Server.default, 1).fadeTime_(fade);
+		texturalpostype = NodeProxy.control(Server.default, 1).fadeTime_(fade);
+		texturalrate = PatternProxy();
 		//output pan
 		panpos = NodeProxy.control(Server.default, 1).fadeTime_(fade);
 		pansign = NodeProxy.control(Server.default, 1).fadeTime_(fade);
@@ -214,8 +249,19 @@ Norns_Sway : Singleton {
 		filtfreq.source = { onsets.kr(1,0).linlin(0,6,500,5000) };
 		filtrq.source = { amplitude.kr(1,0).linlin(0,10,0.3,0.8) };
 		//freeze
-		freezefreq.source = { onsets.kr(1,0).linlin(0,6,0.5,6) };
-		freezefade.source = { onsets.kr(1,0).linlin(0,6,3,0.3) };
+		//freezefreq.source = { onsets.kr(1,0).linlin(0,6,0.1,1) };
+		//freezefade.source = { onsets.kr(1,0).linlin(0,6,3,0.3) };
+		freezedurmin.source = { onsets.kr(1,0).linlin(0,6,1.5,0.75) };
+		freezedurmax.source = { onsets.kr(1,0).linlin(0,6,3,1.5) };
+		freezeleg.source = { onsets.kr(1,0).linlin(0,6,3,1.5) };
+		//textural
+		texturalmin.source = { onsets.kr(1,0).linlin(0,6,1.5,0.1) };
+		texturalmax.source = { onsets.kr(1,0).linlin(0,6,3.0,2.0) };
+		texturalsusmin.source = { onsets.kr(1,0).linlin(0,6,1.5,0.2) };
+		texturalsusmax.source = { onsets.kr(1,0).linlin(0,6,3.0,2.0) };
+		texturalposrate.source = { clarity.kr(1,0).linlin(0,1,0.5,0.01) };
+		texturalpostype.source = { clarity.kr(1,0).linlin(0,1,1,0).round };
+		texturalrate.source = Prand([1,0.5], inf);
 		//pan position
 		panpos.source = { amplitude.kr(1,0).linlin(0,10,0,1) };
 		pansign.source = { onsets.kr(1,0).linlin(0,6,(-1),1) };
@@ -247,8 +293,19 @@ Norns_Sway : Singleton {
 		filtfreq.source = { onsets.kr(1,0).linlin(0,6,5000,500) };
 		filtrq.source = { amplitude.kr(1,0).linlin(0,10,0.9,0.3) };
 		//freeze
-		freezefreq.source = { onsets.kr(1,0).linlin(0,6,6,0.5) };
-		freezefade.source = { onsets.kr(1,0).linlin(0,6,0.3,3) };
+		//freezefreq.source = { onsets.kr(1,0).linlin(0,6,1,0.1) };
+		//freezefade.source = { onsets.kr(1,0).linlin(0,6,0.3,3) };
+		freezedurmin.source = { onsets.kr(1,0).linlin(0,6,0.75,1.5) };
+		freezedurmax.source = { onsets.kr(1,0).linlin(0,6,1.5,3) };
+		freezeleg.source = { onsets.kr(1,0).linlin(0,6,1.5,3) };
+		//textural
+		texturalmin.source = { onsets.kr(1,0).linlin(0,6,0.1,1.5) };
+		texturalmax.source = { onsets.kr(1,0).linlin(0,6,2.0,3.0) };
+		texturalsusmin.source = { onsets.kr(1,0).linlin(0,6,0.2,1.5) };
+		texturalsusmax.source = { onsets.kr(1,0).linlin(0,6,2.0,3.0) };
+		texturalposrate.source = { clarity.kr(1,0).linlin(0,1,0.01,0.5) };
+		texturalpostype.source = { clarity.kr(1,0).linlin(0,1,0,1).round };
+		texturalrate.source = Prand([4,2,0.5,0.25], inf);
 		//pan position
 		panpos.source = { amplitude.kr(1,0).linlin(0,10,1,0) };
 		pansign.source = { onsets.kr(1,0).linlin(0,6,1,(-1)) };
@@ -280,30 +337,24 @@ Norns_Sway : Singleton {
 		(this.name++": Reverb").postln;
 		}
 
-	//Change processing to freeze
+	//Freeze Pattern
+	//Change processing to alternate freeze from norns sketch
 	freeze {
-		//control mapping:
-		//onsets -> freezefreq
-		//amplitude ->
-		processing.source = {
-			//First use gate on input
-			var off = Lag2.kr(A2K.kr(DetectSilence.ar(input.ar(1),0.05),0.3));
-            var on = 1-off;
-			var fade = MulAdd.new(on, 2, 1.neg);
-			var out = XFade2.ar(Silent.ar(), input.ar(1), fade);
-			//then begin freeze
-			var freeze;
-			var amplitude = Amplitude.kr(out);
-			var trig = amplitude > 0.2;
-			var gate = Gate.kr(LFClipNoise.kr(freezefreq.kr(1)),trig);
-			var chain = FFT(fftbuffer, out);
-			chain = PV_Freeze(chain, gate);
-			freeze = XFade2.ar(Silent.ar(), IFFT(chain), Lag2.kr(gate,freezefade.kr(1)));
-			freeze = FreeVerb.ar(freeze, rvmix.kr(1), rvsize.kr(1));
-			freeze = HPF.ar(freeze, 20);
-			freeze;
-		};
-		(this.name++": Freeze").postln;
+		//control mapping
+		//onsets -> duration
+		//onsets -> legato
+		//clarity ->
+		//polarity ->
+		processing.source = Pbind(
+			\instrument, \freeze,
+			\in, input.bus.index,
+			\dur, Pwhite(Pfunc({freezedurmin.bus.getSynchronous}),Pfunc({freezedurmax.bus.getSynchronous}),inf),
+			\trigger, 1,
+			\buf1, fftbuffer.bufnum,
+			\legato,Pkey(\dur)*Pfunc({freezeleg.bus.getSynchronous}),
+			\amp, Pwhite(0.6,0.8),
+			);
+		(this.name++": Freeze Pattern").postln;
 	}
 
 	//Change processing to delay
@@ -344,6 +395,30 @@ Norns_Sway : Singleton {
 			RLPF.ar(input.ar(1), filtfreq.kr(1), filtrq.kr(1)).tanh;
 		};
 		(this.name++": Filter").postln;
+	}
+	
+	//Change processing to textural synth from IRIS
+	textural {
+		//control mapping
+		//onsets -> dur min/max
+		//onsets -> sustain min/max
+		//clarity -> position rate
+		//polarity -> rate
+		processing.source = Pbind(
+			\instrument, \textureStretch,
+			//\dur, Pwhite(0.1,3.0,inf),
+			\dur, Pwhite(Pfunc({texturalmin.bus.getSynchronous}),Pfunc({texturalmax.bus.getSynchronous}),inf),
+			//\sustain, Pwhite(0.05, 4.0, inf),
+			\sustain, Pwhite(Pfunc({texturalsusmin.bus.getSynchronous}),Pfunc({texturalsusmax.bus.getSynchronous}),inf),
+			\gSize, Pwhite(0.1,1.0,inf),
+			\stretch, Pwhite(0.8,2.0,inf),
+			\bufnum, buffer.bufnum,
+			//\posrate, 0.1,
+			\posrate, Pfunc({texturalposrate.bus.getSynchronous}),
+			\rate, texturalrate,
+			\amp, 0.5,
+			);
+		(this.name++": Textural").postln;
 	}
 
 	//change processing to cascading playback
@@ -440,8 +515,19 @@ Norns_Sway : Singleton {
 		filtfreq.fadeTime = time;
 		filtrq.fadeTime = time;
 		//freeze
-		freezefreq.fadeTime = time;
-		freezefade.fadeTime = time;
+		//freezefreq.fadeTime = time;
+		//freezefade.fadeTime = time;
+		freezedurmin.fadeTime = time;
+		freezedurmax.fadeTime = time;
+		freezeleg.fadeTime = time;
+		//textural
+		texturalmin.fadeTime = time;
+		texturalmax.fadeTime = time;
+		texturalsusmin.fadeTime = time;
+		texturalsusmax.fadeTime = time;
+		texturalposrate.fadeTime = time;
+		texturalpostype.fadeTime = time;
+		//texturalrate.fadeTime = time;
 		//output pan
 		output.fadeTime = time;
 		panpos.fadeTime = time;
@@ -477,10 +563,10 @@ Norns_Sway : Singleton {
 		quadrant_map = Array.newClear(5);
 		//change the initial mapping setup here:
 		quadrant_names = Array.newClear(5);
-		quadrant_names.put(0,1);
+		quadrant_names.put(0,3);
 		quadrant_names.put(1,2);
-		quadrant_names.put(2,8);
-		quadrant_names.put(3,3);
+		quadrant_names.put(2,9);
+		quadrant_names.put(3,7);
 		quadrant_names.put(4,4);
 		all_processing = Dictionary.new;
 		all_processing.put(1, {this.silence});
@@ -491,6 +577,7 @@ Norns_Sway : Singleton {
 		all_processing.put(6, {this.cascade});
 		all_processing.put(7, {this.filter});
 		all_processing.put(8, {this.freeze});
+		all_processing.put(9, {this.textural});
 		//make all processing currently available
 		available_processing = Dictionary.new;
 		available_processing.put(1, {this.silence});
@@ -501,6 +588,7 @@ Norns_Sway : Singleton {
 		available_processing.put(6, {this.cascade});
 		available_processing.put(7, {this.filter});
 		available_processing.put(8, {this.freeze});
+		available_processing.put(9, {this.textural});
 		this.assign_quadrant(xy[0], xy[1]);
 		this.map_quadrants(quadrant_names);
 		polarity=false;
@@ -539,8 +627,16 @@ Norns_Sway : Singleton {
 		granenvspeed.free(1);
 		filtfreq.free(1);
 		filtrq.free(1);
-		freezefreq.free(1);
-		freezefade.free(1);
+		freezedurmin.free(1);
+		freezedurmax.free(1);
+		freezeleg.free(1);
+		texturalmin.free(1);
+		texturalmax.free(1);
+		texturalsusmin.free(1);
+		texturalsusmax.free(1);
+		texturalposrate.free(1);
+		texturalpostype.free(1);
+		texturalrate.free(1);
 		panpos.free(1);
 		pansign.free(1);
 		analysis_loop.stop;

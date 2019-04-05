@@ -11,6 +11,8 @@
 --
 -- key 2 toggles processing map
 -- and analysis values view
+-- 
+-- enc 1 changes master volume
 --
 -- greater control available
 -- within parameter menu
@@ -25,7 +27,7 @@ local x_coord = 0.5
 local y_coord = 0.5
 local processingtext =""
 local screen_number = 0
-local quadrants = {1,2,8,3,4}
+local quadrants = {3,2,9,7,4}
 local q0,q1,q2,q3,q4  
 
 engine.name = 'Sway'
@@ -33,7 +35,7 @@ engine.name = 'Sway'
 function init()
    print("Sway")
    a = poll.set("avg_amp")
-   a.callback = function(val) amp = val end
+   a.callback = function(val) amp = string.format("%.2f", val) end
    a:start()
 
    o = poll.set("avg_onsets")
@@ -86,10 +88,10 @@ function init()
   params:add{type="number", id="amp_threshold", min=0, max=40,default=4,
     action=function(x) engine.amp_thresh(x) end}
 
-  params:add{type="number", id="density_threshold", min=0, max=80, default=40,
+  params:add{type="number", id="density_threshold", min=0, max=80, default=35,
     action=function(x) engine.density_thresh(x/10) end}
 
-  params:add{type="number", id="clarity_threshold", min=0, max=100, default=70,
+  params:add{type="number", id="clarity_threshold", min=0, max=100, default=65,
     action=function(x) engine.clarity_thresh(x/100) end}
 
   params:add_separator()
@@ -97,13 +99,13 @@ function init()
   params:add{type="option", id="analysis", name="analysis", options={"on", "off"},
     action=function(val) engine.analysis_on(val) if val==1 then params:set("processing_type", 1) end end}
 
-  params:add{type="number", id="fadetime", min=2, max=120, default=30,
+  params:add{type="number", id="fadetime", min=2, max=120, default=5,
     action=function(x) engine.fadetime(x) end}
 
-  params:add{type="option", id="panning", name="panning", options={"on", "off"},
+  params:add{type="option", id="panning", name="panning", default=2, options={"on", "off"},
     action=function(val) engine.panning_on(val) end}
 
-  params:add{type="option", id="processing_type", name="processing_type", options={"---","reverb", "delay", "amp mod", "freeze", "pitchbend", "filter", "cascade"},
+  params:add{type="option", id="processing_type", name="processing_type", options={"---","reverb", "delay", "amp mod", "freeze", "pitchbend", "filter", "textural", "cascade"},
     action=function(val) if params:get("analysis")==2 then
       if val==1 then engine.silence(val) end
       if val==2 then engine.reverb(val) end
@@ -112,7 +114,8 @@ function init()
       if val==5 then engine.freeze(val) end
       if val==6 then engine.pitchbend(val) end
       if val==7 then engine.filter(val) end
-      if val==8 then engine.cascade(val) end
+      if val==8 then engine.textural(val) end
+      if val==9 then engine.cascade(val) end
       end
     end}
 
@@ -129,7 +132,7 @@ function init()
 
   params:add_separator()
 
-  params:add{type="option", id="center", name="center", default=1, options={"silence","reverb", "delay", "amp mod", "freeze", "pitchbend", "filter", "cascade"},
+  params:add{type="option", id="center", name="center", default=2, options={"silence","reverb", "delay", "amp mod", "freeze", "pitchbend", "filter", "textural", "cascade"},
     action=function(val)
       if val==1 then engine.map_quadrant(0,1) end
       if val==2 then engine.map_quadrant(0,3) end
@@ -138,10 +141,11 @@ function init()
       if val==5 then engine.map_quadrant(0,8) end
       if val==6 then engine.map_quadrant(0,5) end
       if val==7 then engine.map_quadrant(0,7) end
-      if val==8 then engine.map_quadrant(0,6) end
+      if val==8 then engine.map_quadrant(0,9) end
+      if val==9 then engine.map_quadrant(0,6) end
       end}
 
-    params:add{type="option", id="quadrant_1", name="quadrant_1", default=3, options={"silence","reverb", "delay", "amp mod", "freeze", "pitchbend", "filter", "cascade"},
+    params:add{type="option", id="quadrant_1", name="quadrant_1", default=3, options={"silence","reverb", "delay", "amp mod", "freeze", "pitchbend", "filter", "textural", "cascade"},
     action=function(val)
       if val==1 then engine.map_quadrant(1,1) end
       if val==2 then engine.map_quadrant(1,3) end
@@ -150,10 +154,11 @@ function init()
       if val==5 then engine.map_quadrant(1,8) end
       if val==6 then engine.map_quadrant(1,5) end
       if val==7 then engine.map_quadrant(1,7) end
-      if val==8 then engine.map_quadrant(1,6) end
+      if val==8 then engine.map_quadrant(1,9) end
+      if val==9 then engine.map_quadrant(1,6) end
       end}
 
-    params:add{type="option", id="quadrant_2", name="quadrant_2", default=5, options={"silence","reverb", "delay", "amp mod", "freeze", "pitchbend", "filter", "cascade"},
+    params:add{type="option", id="quadrant_2", name="quadrant_2", default=8, options={"silence","reverb", "delay", "amp mod", "freeze", "pitchbend", "filter", "textural", "cascade"},
     action=function(val)
       if val==1 then engine.map_quadrant(2,1) end
       if val==2 then engine.map_quadrant(2,3) end
@@ -162,10 +167,11 @@ function init()
       if val==5 then engine.map_quadrant(2,8) end
       if val==6 then engine.map_quadrant(2,5) end
       if val==7 then engine.map_quadrant(2,7) end
-      if val==8 then engine.map_quadrant(2,6) end
+      if val==8 then engine.map_quadrant(2,9) end
+      if val==9 then engine.map_quadrant(2,6) end
       end}
 
-    params:add{type="option", id="quadrant_3", name="quadrant_3", default=2, options={"silence","reverb", "delay", "amp mod", "freeze", "pitchbend", "filter", "cascade"},
+    params:add{type="option", id="quadrant_3", name="quadrant_3", default=7, options={"silence","reverb", "delay", "amp mod", "freeze", "pitchbend", "filter", "textural", "cascade"},
     action=function(val)
       if val==1 then engine.map_quadrant(3,1) end
       if val==2 then engine.map_quadrant(3,3) end
@@ -174,10 +180,11 @@ function init()
       if val==5 then engine.map_quadrant(3,8) end
       if val==6 then engine.map_quadrant(3,5) end
       if val==7 then engine.map_quadrant(3,7) end
-      if val==8 then engine.map_quadrant(3,6) end
+      if val==8 then engine.map_quadrant(3,9) end
+      if val==9 then engine.map_quadrant(3,6) end
       end}
 
-    params:add{type="option", id="quadrant_4", name="quadrant_4", default=4, options={"silence","reverb", "delay", "amp mod", "freeze", "pitchbend", "filter", "cascade"},
+    params:add{type="option", id="quadrant_4", name="quadrant_4", default=4, options={"silence","reverb", "delay", "amp mod", "freeze", "pitchbend", "filter", "textural", "cascade"},
     action=function(val)
       if val==1 then engine.map_quadrant(4,1) end
       if val==2 then engine.map_quadrant(4,3) end
@@ -186,7 +193,8 @@ function init()
       if val==5 then engine.map_quadrant(4,8) end
       if val==6 then engine.map_quadrant(4,5) end
       if val==7 then engine.map_quadrant(4,7) end
-      if val==8 then engine.map_quadrant(4,6) end
+      if val==8 then engine.map_quadrant(4,9) end
+      if val==9 then engine.map_quadrant(4,6) end
       end}
   params:read("/home/we/dust/data/sway/sway.pset")
   params:bang()
@@ -283,6 +291,9 @@ function decode(num)
                   end
                     if num ==8 then
                     return "Freeze"
+                    end
+                      if num ==9 then
+                    return "Textural"
                     end
 end
 
