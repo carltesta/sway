@@ -1,3 +1,7 @@
+-- Sway
+-- v1.0.0 @carltesta
+-- llllllll.co/t/21117
+--
 -- Sway - live processing
 --  environment
 --
