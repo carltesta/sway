@@ -10,6 +10,8 @@ Demo/walkthrough video here: https://youtu.be/w9RZHmo4JAs
 To install Sway in SuperCollider, first install the Singleton Quark
 `Quarks.install("Singleton");`
 
+You'll also need the SC3-Plugins. Download and instructions for install are here: http://supercollider.github.io/sc3-plugins/
+
 In SuperCollider, goto `File -> Open user support directory`
 
 Download the files in this git repo and move them into the `Extensions` directory
