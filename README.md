@@ -20,7 +20,7 @@ Recompile the class library by going to `Language -> Recompile Class Library`
 
 Create a new file and use the following code to start and configure the solo version of Sway
 
-`
+```
 //Sway Solo
 
 //create the instance of Sway
@@ -42,6 +42,6 @@ Sway(\solo).output.play;
 //Start the GUI to adjust the settings and configuration
 SwaySoloGUI.new;
 )
-`
+```
 
 
