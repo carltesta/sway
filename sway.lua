@@ -84,7 +84,7 @@ function init()
 
   t = metro.init()
   t.count = 0
-  t.time = 1
+  t.time = 0.1
   t.event = function(stage)
     redraw()
   end
@@ -206,14 +206,22 @@ function init()
 
 end
 
+function ltgt(value, threshold)
+   if value < threshold then
+      return "<"
+   else
+      return ">"
+   end
+end
+
 function draw_screen()
   if screen_number==1 then
   screen.move(0, 24)
-  screen.text("amp: ".. amp)
+  screen.text("amp: ".. amp .. " " .. ltgt(amp+0, params:get('amp_threshold')) .. " " .. params:get('amp_threshold'))
   screen.move(0, 32)
-  screen.text("density: ".. density)
+  screen.text("density: ".. density .. " " .. ltgt(density+0, params:get('density_threshold'))..  " " .. params:get('density_threshold'))
   screen.move(0, 40)
-  screen.text("clarity: ".. clarity)
+  screen.text("clarity: ".. clarity .. " " .. ltgt(clarity+0, params:get('clarity_threshold')).. " ".. params:get('clarity_threshold'))
   screen.move(0, 48)
   screen.text("X: ".. x_coord)
   screen.move(32, 48)
@@ -303,7 +311,11 @@ end
 
 function enc(n, delta)
   if n == 1 then
-    params:delta("output_level", delta)
+    params:delta('amp_threshold', delta)
+  elseif n == 2 then
+    params:delta('density_threshold', delta)
+  elseif n == 3 then
+    params:delta('clarity_threshold', delta)
   end
 end
 
